@@ -1,0 +1,238 @@
+/* 4-compartment model of a deep layer PFC pyramidal cell */
+/* from Durstewitz et al. (2000), J.Neurophysiol. 83: 1733-50 */
+/* Modified paramaters from the same paper to simulate DA perturbation */
+
+
+nrn_load_dll("./x86_64/.libs/libnrnmech.so")
+
+
+begintemplate Pyramidal
+
+	public soma, basal, prox, dist
+
+	create soma, basal, prox, dist
+
+	proc init() {
+		rGeo = $1
+		rCm = $2
+		rR = $3
+		DA = $4
+
+		cao0_ca_ion = 2  /* mM */
+		cai0_ca_ion = 50e-6   /* mM */
+		ko0_k_ion = 3.82  /* mM */
+		ki0_k_ion = 140   /* mM */
+		celcius   = 23
+
+		soma {
+			nseg=1
+			L=23.0*rGeo
+			diam=23.0*rGeo
+			insert Naf
+			gnafbar_Naf = 0.086
+			insert NapDA
+			gnapbar_NapDA = 0.0022
+			DA_NapDA = DA
+			insert Hva
+			ghvabar_Hva = (0.00034-0.000068*DA)
+			insert kdr
+			gkdrbar_kdr = 0.0338
+			insert IKs
+			gKsbar_IKs = (0.00014-0.00007*DA)
+			insert iC
+			gkcbar_iC = 0.0022
+			insert cadyn
+			CAF_cadyn = 385.948e-9
+			tca_cadyn = 250
+			insert kdyn
+			insert pas
+			e_pas = -70
+			Ra = 150*rR
+			g_pas = 3.33e-5
+			cm = 1.2*rCm
+		}
+
+		basal {
+			nseg=1
+			L=150.0*rGeo
+			diam=16.0
+			insert Naf
+			gnafbar_Naf = 0.028
+			insert NapDA
+			gnapbar_NapDA = 0.001
+			DA_NapDA = DA
+			insert Hva
+			ghvabar_Hva = (0.0007-0.00014*DA)
+			insert kdr
+			gkdrbar_kdr = 0.0092
+			insert IKs
+			gKsbar_IKs = (0.00024-0.00012*DA)
+			insert iC
+			gkcbar_iC = 0.0038
+			insert cadyn
+			CAF_cadyn=964.87e-9
+			tca_cadyn =120
+			insert kdyn
+			insert pas
+			cm = 2.3*rCm
+			g_pas = 6.39e-5
+			e_pas = -70
+			Ra = 150*rR
+		}
+
+		prox {
+			nseg=1
+			L=400.0*rGeo
+			diam=2.6
+			insert Naf
+			gnafbar_Naf = 0.028
+			insert NapDA
+			gnapbar_NapDA = 0.001
+			DA_NapDA = DA
+			insert Hva
+			ghvabar_Hva = (0.0007-0.00014*DA)
+			insert kdr
+			gkdrbar_kdr = 0.0092
+			insert IKs
+			gKsbar_IKs = (0.00024-0.00012*DA)
+			insert iC
+			gkcbar_iC = 0.0038
+			insert cadyn
+			CAF_cadyn = 964.87e-9
+			tca_cadyn = 120
+			insert kdyn
+			insert pas
+			cm = 2.3*rCm
+			g_pas = 6.39e-5
+			e_pas = -70
+			Ra = 150*rR
+		}
+
+		dist {
+			nseg=1
+			L=400*rGeo
+			diam=2.6
+			insert Naf
+			gnafbar_Naf = 0.028
+			insert Hva
+			ghvabar_Hva = (0.00034-0.00017*DA)
+			insert kdr
+			gkdrbar_kdr = 0.0092
+			insert IKs
+			gKsbar_IKs = (0.00024-0.00012*DA)
+			insert iC
+			gkcbar_iC = 0.0022
+			insert cadyn
+			CAF_cadyn = 964.87e-9
+			tca_cadyn = 80
+			insert kdyn
+			insert pas
+			cm = 2.3*rCm
+			g_pas = 6.39e-5
+			e_pas = -70
+			Ra = 150*rR
+		}
+
+		connect basal(0), soma(0)
+		connect prox(0), soma(1)
+		connect dist(0), prox(1)
+	}
+
+	public set_v
+	proc set_v() {
+		forall v = $1
+	}
+
+	public set_DA
+	proc set_DA() {
+		DA = $1
+		soma {
+			ghvabar_Hva = (0.00034-0.000068*DA)
+			gKsbar_IKs = (0.00014-0.00007*DA)
+			DA_NapDA = DA
+		}
+		basal {
+			ghvabar_Hva = (0.0007-0.00014*DA)
+			gKsbar_IKs = (0.00024-0.00012*DA)
+			DA_NapDA = DA
+		}
+		prox {
+			insert Hva
+			ghvabar_Hva = (0.0007-0.00014*DA)
+			gKsbar_IKs = (0.00024-0.00012*DA)
+			DA_NapDA = DA
+		}
+		dist {
+			ghvabar_Hva = (0.00034-0.00017*DA)
+			gKsbar_IKs = (0.00024-0.00012*DA)
+		}
+	}
+
+endtemplate Pyramidal
+
+
+
+begintemplate Interneuron
+
+	public soma, dendrite
+	create soma, dendrite
+
+	proc init() {
+		rGeo = $1
+		rCm = $2
+		rR = $3
+		DA = $4
+		ko0_k_ion = 3.82  /* mM */
+		ki0_k_ion = 140   /* mM */	nseg=1
+
+		soma {
+			L=15.0*rGeo
+			diam=15.0*rGeo
+			insert Naf_fs
+			gnafbar_Naf_fs = 0.100
+			insert kdr_fs
+			gkdrbar_kdr_fs = 0.040
+			insert kdyn
+			insert pas
+			cm = 1.0       /* microF/cm2 */
+			g_pas = 10.00*1e-5  /* mho/cm2 */
+			e_pas = -70
+			Ra = 150*rR         /* ohm-cm */
+		}
+        
+		dendrite {
+			L=150.0*rGeo
+			diam=10.0
+			insert Naf_fs
+			gnafbar_Naf_fs = 0.020
+			insert kdr_fs
+			gkdrbar_kdr_fs = 0.008
+			insert kdyn
+			insert pas
+			cm = 1.0*rCm       /* microF/cm2 */
+			g_pas = 10.00*1e-5  /* mho/cm2 */
+			e_pas = -70
+			Ra = 150*rR         /* ohm-cm */
+		}
+
+		connect dendrite(0), soma(0)
+	}
+
+	public set_v
+	proc set_v() {
+		forall v = $1
+	}
+    
+	public set_DA
+	proc set_DA() {
+		DA = $1
+		soma {
+			g_pas = (10.00-0.0*DA)*1e-5  /* mho/cm2 */
+		}
+		dendrite {
+			g_pas = (10.00-0.0*DA)*1e-5  /* mho/cm2 */
+		}
+	}
+
+
+endtemplate Interneuron
